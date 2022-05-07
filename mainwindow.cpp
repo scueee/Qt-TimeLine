@@ -65,8 +65,9 @@ void MainWindow::btn_init(){
         for(int i=0;i<w;i++){
             for(int j=0;j<h;j++){
                 if(i!=0||j!=0)creat_btn(i,j);
-                QString key = QString{"%1%2/Hide"}.arg(i).arg(j);
-                if(ini->value(key).toBool())btnVec.last()->hide();
+                QString key = QString{"%1%2"}.arg(i).arg(j);
+                if(ini->value(key+"/Hide").toBool())btnVec.last()->hide();
+                if(ini->contains(key+"/Title"))btnVec.last()->setText(ini->value(key+"/Title").toString());
             }
         }
         ui->scrollAreaWidgetContents->setMinimumSize(
