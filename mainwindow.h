@@ -8,6 +8,7 @@
 #include <QSettings>
 #include <QCloseEvent>
 #include <QScrollBar>
+#include <QFileDialog>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -33,6 +34,7 @@ private:
     int now_pos[2];
     int last_move[2] = {0,0};
     int vector_max_plus1(QVector<int>);
+    void btn_init();
     void creat_btn(int,int);
     void update_background();
 
@@ -45,6 +47,9 @@ private slots:
     void on_btn_show_clicked();
     void on_horizontalSlider_valueChanged(int);
     void getTitle(QString);
+    void on_actionExport_triggered();
+    void on_actionOpen_triggered();
+    void on_actionNew_triggered();
 
 protected:
     bool eventFilter(QObject *obj, QEvent *ev) override;

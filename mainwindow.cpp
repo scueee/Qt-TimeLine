@@ -18,18 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->btn_row->setFixedSize(size,size);
     ui->btn_col->setFixedSize(size,size);
     // init btn
-    if(ini->contains("Width")&&ini->contains("Height")){
-        int w = ini->value("Width").toInt();
-        int h = ini->value("Height").toInt();
-        for(int i=0;i<w;i++){
-            for(int j=0;j<h;j++){
-                if(i!=0||j!=0)creat_btn(i,j);
-            }
-        }
-        ui->scrollAreaWidgetContents->setMinimumSize(
-                    (int(scale*(vector_max_plus1(xPos)+4)*size)),
-                    int(scale*(vector_max_plus1(yPos)+4)*size));
-    }
+    btn_init();
 }
 
 MainWindow::~MainWindow()
@@ -69,6 +58,23 @@ void MainWindow::closeEvent(QCloseEvent *event){
     event->accept();
 }
 
+void MainWindow::btn_init(){
+    if(ini->contains("Width")&&ini->contains("Height")){
+        int w = ini->value("Width").toInt();
+        int h = ini->value("Height").toInt();
+        for(int i=0;i<w;i++){
+            for(int j=0;j<h;j++){
+                if(i!=0||j!=0)creat_btn(i,j);
+                QString key = QString{"%1%2/Hide"}.arg(i).arg(j);
+                if(ini->value(key).toBool())btnVec.last()->hide();
+            }
+        }
+        ui->scrollAreaWidgetContents->setMinimumSize(
+                    (int(scale*(vector_max_plus1(xPos)+4)*size)),
+                    int(scale*(vector_max_plus1(yPos)+4)*size));
+    }
+}
+
 void MainWindow::btn_card_clicked(const int *pos){
     EditWin *newWin = new EditWin;
     now_pos[0] = pos[0];
@@ -90,7 +96,11 @@ void MainWindow::btn_contextMenu_requested(const int *pos)
     QAction *act_edit = cmenu->addAction("编辑");
     QAction *act_hide = cmenu->addAction("隐藏");
     connect(act_edit,&QAction::triggered,[=]{btn_card_clicked(pos);});
-    connect(act_hide,&QAction::triggered,[=]{btnVec[n]->hide();});
+    connect(act_hide,&QAction::triggered,[=]{
+        btnVec[n]->hide();
+        QString key = QString{"%1%2/Hide"}.arg(pos[0]).arg(pos[1]);
+        ini->setValue(key,true);
+    });
     cmenu->exec(QCursor::pos());//呼出菜单
 }
 
@@ -138,10 +148,11 @@ void MainWindow::creat_btn(int x,int y){
     connect(btnVec.last(),&QPushButton::customContextMenuRequested,[=]{btn_contextMenu_requested(pos);});
     ui->gridLayout->addWidget(btnVec.last(),y,x);    
     // read ini
-    QString key = QString{"%1%2/Title"}.arg(pos[0]).arg(pos[1]);
+    QString key = QString{"%1%2"}.arg(pos[0]).arg(pos[1]);
     if(ini->contains(key)){
-        btnVec.last()->setText(ini->value(key).toString());
+        btnVec.last()->setText(ini->value(key+"/Title").toString());
     }
+    if(!ini->value(key+"/Hide").toBool())ini->setValue(key+"/Hide",false);
 }
 
 void MainWindow::on_horizontalSlider_valueChanged(int value){
@@ -164,8 +175,13 @@ void MainWindow::on_btn_setting_clicked(){
 }
 
 void MainWindow::on_btn_show_clicked(){
-    for(int i=0;i<btnVec.size();i++)
+    for(int i=0;i<btnVec.size();i++){
         btnVec[i]->show();
+    }
+    QStringList key_list = ini->allKeys();
+    foreach(QString key,key_list){
+        if(key.contains("/Hide"))ini->setValue(key,false);
+    }
 }
 
 void MainWindow::update_background(){
@@ -174,4 +190,32 @@ void MainWindow::update_background(){
     ui->widget_main->row = vector_max_plus1(yPos);
     ui->widget_main->update();
 
+}
+
+void MainWindow::on_actionExport_triggered(){
+    QString file;
+    QString path = QFileDialog::getSaveFileName(this, tr("保存INI文件"), "./", tr("File(*.ini)"), &file, QFileDialog::ShowDirsOnly);
+    QFile::copy("./config.ini",path);
+}
+
+void MainWindow::on_actionOpen_triggered(){
+    QString file;
+    QString path = QFileDialog::getOpenFileName(this, tr("打开INI文件"), "./", tr("File(*.ini)"), &file, QFileDialog::ShowDirsOnly);
+    on_actionNew_triggered();
+    QFile::copy(path,"./config.ini");
+    btn_init();
+}
+
+void MainWindow::on_actionNew_triggered(){
+    for(QPushButton *btn:btnVec){
+        ui->widget_main->layout()->removeWidget(btn);
+        btn->setParent(nullptr);
+        btn->deleteLater();
+    }
+    xPos.clear();
+    yPos.clear();
+    xPos.append(0);
+    yPos.append(0);
+    btnVec.clear();
+    QFile::remove("./config.ini");
 }
